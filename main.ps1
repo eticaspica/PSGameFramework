@@ -12,7 +12,6 @@ if ( $null -eq $save_data ) {
         money = 0
         items = @{}
         equipment = @{}
-        stateTransition = ''
     }
 }
 
@@ -32,7 +31,8 @@ function displayUI {
         ("S: open [S]hop`r`nE: [E]quipment`r`nQ: [Q]uit game"),
         ('inputKey: {0}' -f $inputKey),
         ('(illegalKey): {0}' -f $illegalKey),
-        ('confirmedInput: {0}' -f $confirmedInput)
+        ('confirmedInput: {0}' -f $confirmedInput),
+        ('transition state: {0}' -f $save_data.transition.state)
     )
     
     [Int]$windowWidth = 32
@@ -42,6 +42,31 @@ function displayUI {
     $paddingLine = { '|{0}|' -f $Args[0].PadLeft($windowWidth) }
     
     $displayLines.ForEach{&$splitCRLF $_}.ForEach{&$splitWindowWidth $_}.ForEach{&$paddingLine $_} -Join "`r`n" | Write-Host
+}
+
+function transitionScene {
+    param (
+        [Char]$Key
+    )
+
+    if ( $null -ne $save_data.transition ) {
+        [String]$nowTransitionKey = $save_data.transition.key
+    } else {
+        $save_data['transition'] = @{
+            key = $Key
+            state = ''
+        }
+    }
+
+    if ( $Key -ne $nowTransitionKey ) {
+        switch ( $Key ) {
+            S   { $save_data.transition.state = 'Shop' }
+            E   { $save_data.transition.state = 'Equipment' }
+            Q   { $save_data.transition.state = 'Quit_game' }
+            Default {}
+        }
+        $save_data.transition.key = $Key
+    }
 }
 
 while ($true) {
@@ -57,13 +82,16 @@ while ($true) {
             }
         } elseif ($key.Key.value__ -in 48..57) {
             $inputKey += $key.KeyChar
+            transitionScene $Key.KeyChar
         } elseif ($key.Key.value__ -in 65..90) {
             $inputKey += $key.KeyChar
+            transitionScene $Key.KeyChar
         } else {
             $illegalKey = '{0} ({1})' -f $key.KeyChar, $key.Key.value__
         }
     }
-    
+
+    $Key = $null
     Clear-Host
     displayUI
     Start-Sleep -Milliseconds 100

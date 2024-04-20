@@ -3,7 +3,7 @@ if ( Test-Path ./save.json ) {
     New-Item -Path ./save.json -Type File | Out-Null
 }
 
-[hashtable]$save_data = Get-Content -Path ./save.json | ConvertFrom-Json
+[hashtable]$save_data = Get-Content -Path ./save.json | ConvertFrom-Json -AsHashtable
 
 if ( $null -eq $save_data ) {
     $save_data = @{}

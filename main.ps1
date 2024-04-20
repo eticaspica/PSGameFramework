@@ -37,13 +37,11 @@ function displayUI {
     
     [Int]$windowWidth = 32
 
-    $getBytes = { [System.Text.Encoding]::GetEncoding('Shift-Jis').GetByteCount($Args[0]) }
-    $countTwoByteCharacters = { $Args[0].ToCharArray().Where{ (&$getBytes $_) -ne 1}.Count }
-    $paddingLine = { $Args[0].PadLeft($windowWidth - (&$countTwoByteCharacters $Args[0])) }
     $splitCRLF = { $Args[0] -split "`r`n" }
-    $splitWindowWidth = { (((&$countTwoByteCharacters $Args[0]) + $Args[0].Length) -gt $windowWidth )?($Args[0] -split "(.{$($windowWidth)})" -ne ''):$Args[0] }
+    $splitWindowWidth = { ($Args[0].Length -gt $windowWidth )?($Args[0] -split "(.{$($windowWidth)})" -ne ''):$Args[0] }
+    $paddingLine = { '|{0}|' -f $Args[0].PadLeft($windowWidth) }
     
-    $displayLines.ForEach{&$splitCRLF $_}.ForEach{&$splitWindowWidth $_}.ForEach{ '|{0}|' -f (&$paddingLine $_) } -Join "`r`n" | Write-Host
+    $displayLines.ForEach{&$splitCRLF $_}.ForEach{&$splitWindowWidth $_}.ForEach{&$paddingLine $_} -Join "`r`n" | Write-Host
 }
 
 while ($true) {

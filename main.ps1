@@ -1,4 +1,31 @@
-. ./*.ps1
+enum SceneTypes {
+    Home = 0
+    Shop = 100
+    Equipment = 200
+}
+
+enum KeyTypes {
+    H = 0
+    S = 100
+    E = 200
+}
+
+class SaveData {
+    [String]$Name
+    [Int]$Money
+    [hashtable]$Item
+    [hashtable]$Equipment
+    [SceneTypes]$State
+
+    SaveData() { $this.Init(@{}) }
+    SaveData([hashtable]$Properties) { $this.Init($Properties) }
+    SaveData([String]$name) { $this.Init(@{Name = $name}) }
+    [void] Init([hashtable]$Properties) {
+        foreach ($Property in $Properties.Keys) {
+            $this.$Property = $Properties.$Property
+        }
+    }
+}
 
 function displayUI {
     param (
@@ -27,15 +54,12 @@ function transitionScene {
         [ConsoleKeyInfo]$key
     )
 
-    if ( $key -ne $nowTransitionKey ) {
-        $saveData.transition.key = $key.KeyChar
-        switch ( $key.KeyChar ) {
-            S   { $saveData.State = 'Shop' }
-            E   { $saveData.State = 'Equipment' }
-            D   { return (developScene $key) }
-            Q   { quitGameScene }
-            Default {}
-        }
+    switch ( $key.KeyChar ) {
+        S   { $saveData.State = [SceneTypes]'Shop' }
+        E   { $saveData.State = [SceneTypes]'Equipment' }
+        D   { return (developScene $key) }
+        Q   { quitGameScene }
+        Default {}
     }
 }
 
@@ -44,7 +68,7 @@ function shopScene {
 }
 
 function quitGameScene {
-    $saveData.State = ''
+    $saveData.State = [SceneTypes]'Home'
     saveGame $name
     exit
 }
@@ -75,20 +99,6 @@ $saveData = $null
 Write-Host 'type your name'
 $name = Read-Host
 
-class SaveData {
-    [String]$Name
-    [Int]$Money
-    [hashtable]$Item
-    [hashtable]$Equipment
-    [enum]$State
-
-    SaveData() { this.Init(@{}) }
-    SaveData([hashtable]$Properties) { $this.Init($Properties) }
-    SaveData([String]$Name) { $this.Init(@{Name = $Name}) }
-    [void]Init([hashtable]$Properties) { $Properties.Keys.ForEach{ $this.$Property = $_ } }
-
-
-}
 
 if ( Test-Path "./save_$name.json" ) {
     [hashtable]$loadJson = Get-Content -Path "./save_$name.json" -Raw | ConvertFrom-Json -AsHashtable
@@ -99,7 +109,7 @@ if ( Test-Path "./save_$name.json" ) {
     }
 } else {
     New-Item -Path "./save_$name.json" -Type File | Out-Null
-    $saveData = [SaveData]::new('')
+    $saveData = [SaveData]::new($name)
     saveGame $name
 }
 
@@ -125,7 +135,6 @@ while ($true) {
         }
     }
 
-    $Key = $null
     Clear-Host
     displayUI $sceneLines
     Start-Sleep -Milliseconds 100

@@ -7,7 +7,7 @@ class SaveData {
     [hashtable]$Equipment
     [SceneTypes]$State
 
-    SaveData() { this.Init(@{}) }
+    SaveData() { $this.Init(@{}) }
     SaveData([hashtable]$Properties) { $this.Init($Properties) }
     SaveData([String]$name) { $this.Init(@{Name = $name}) }
     [void] Init([hashtable]$Properties) {

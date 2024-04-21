@@ -18,7 +18,7 @@ if ( $null -eq $save_data ) {
 if ( $save_data.player.name -eq '' ) {
     Write-Host 'type your name'
     $save_data.player.name = Read-Host
-    $save_data | ConvertTo-Json | Set-Content -Path ./save.json
+    saveGame
 }
 
 function displayUI {
@@ -67,6 +67,15 @@ function transitionScene {
         }
         $save_data.transition.key = $Key
     }
+}
+
+function quitGameScene {
+    saveGame
+    exit
+}
+
+function saveGame {
+    $save_data | ConvertTo-Json | Set-Content -Path ./save.json
 }
 
 while ($true) {

@@ -29,7 +29,8 @@ class SaveData {
 
 function displayUI {
     param (
-        [String[]]$sceneLines
+        [String[]]$sceneLines,
+        [ConsoleKeyInfo]$key
     )
     $displayLines = @(
         ('Name: {0}' -f $saveData.Name),
@@ -39,6 +40,10 @@ function displayUI {
     )
     
     if ( $null -ne $sceneLines ) { $displayLines += $sceneLines }
+    if ( $devMode -eq $true ) {
+        [Stirng[]]$devLines = developScene $key
+        $displayLines += $devLines
+    }
     
     [Int]$windowWidth = 48
 
@@ -57,7 +62,7 @@ function transitionScene {
     switch ( $key.KeyChar ) {
         S   { $saveData.State = [SceneTypes]'Shop' }
         E   { $saveData.State = [SceneTypes]'Equipment' }
-        D   { return (developScene $key) }
+        D   { $devMode = !$devMode }
         Q   { quitGameScene }
         Default {}
     }
@@ -95,6 +100,7 @@ $name = $null
 $inputKeys = $null
 $confirmedInput = $null
 $saveData = $null
+[Boolean]$devMode = $false
 
 Write-Host 'type your name'
 $name = Read-Host
@@ -127,15 +133,14 @@ while ($true) {
             }
         } elseif ($key.Key -in [ConsoleKey]::D0..[ConsoleKey]::D9) {
             $inputKeys += $key.KeyChar
-            [String[]]$sceneLines = transitionScene $keyType
         } elseif ($key.Key -in [ConsoleKey]::a..[ConsoleKey]::z) {
             $inputKeys += $key.KeyChar
-            [String[]]$sceneLines = transitionScene $Key
         } else {
         }
+        [String[]]$sceneLines = transitionScene $key
     }
 
     Clear-Host
-    displayUI $sceneLines
+    displayUI $sceneLines $key
     Start-Sleep -Milliseconds 100
 }

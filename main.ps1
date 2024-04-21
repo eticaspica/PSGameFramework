@@ -1,12 +1,14 @@
+. ./*.ps1
+
 function displayUI {
     param (
         [String[]]$sceneLines
     )
     $displayLines = @(
-        ('Name: {0}' -f $saveData.player.name),
-        ('Gold: {0}G' -f $saveData.player.money),
+        ('Name: {0}' -f $saveData.Name),
+        ('Gold: {0}G' -f $saveData.Money),
         ("S: open [S]hop`r`nE: [E]quipment`r`nQ: [Q]uit game"),
-        ('transition state: {0}' -f $saveData.transition.state)
+        ('transition state: {0}' -f $saveData.State)
     )
     
     if ( $null -ne $sceneLines ) { $displayLines += $sceneLines }
@@ -28,8 +30,8 @@ function transitionScene {
     if ( $key -ne $nowTransitionKey ) {
         $saveData.transition.key = $key.KeyChar
         switch ( $key.KeyChar ) {
-            S   { $saveData.transition.state = 'Shop' }
-            E   { $saveData.transition.state = 'Equipment' }
+            S   { $saveData.State = 'Shop' }
+            E   { $saveData.State = 'Equipment' }
             D   { return (developScene $key) }
             Q   { quitGameScene }
             Default {}
@@ -42,7 +44,7 @@ function shopScene {
 }
 
 function quitGameScene {
-    $saveData.transition.key = ''
+    $saveData.State = ''
     saveGame $name
     exit
 }
@@ -89,25 +91,20 @@ class SaveData {
 }
 
 if ( Test-Path "./save_$name.json" ) {
-    [hashtable]$saveData = Get-Content -Path "./save_$name.json" -Raw | ConvertFrom-Json -AsHashtable
+    [hashtable]$loadJson = Get-Content -Path "./save_$name.json" -Raw | ConvertFrom-Json -AsHashtable
+    try {
+        $saveData = [SaveData]::new($loadJson)
+    } catch {
+        $saveData = [SaveData]::new($name)
+    }
 } else {
     New-Item -Path "./save_$name.json" -Type File | Out-Null
-    $saveData = @{}
-    $saveData['player'] = @{
-        name = $name
-        money = 0
-        items = @{}
-        equipment = @{}
-    }
-    $saveData['transition'] = @{
-        state = ''
-        key = ''
-    }
+    $saveData = [SaveData]::new('')
     saveGame $name
 }
 
 while ($true) {
-    $saveData.player.money += 1
+    $saveData.Money += 1
 
     if ([console]::KeyAvailable) {
         [ConsoleKeyInfo]$key = [console]::ReadKey($true)

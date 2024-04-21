@@ -1,19 +1,17 @@
 function displayUI {
     param (
-
+        [String[]]$sceneLines
     )
     $displayLines = @(
         ('Name: {0}' -f $saveData.player.name),
         ('Gold: {0}G' -f $saveData.player.money),
         ("S: open [S]hop`r`nE: [E]quipment`r`nQ: [Q]uit game"),
-        ('inputKey: {0}' -f $inputKey),
-        ('(illegalKey): {0}' -f $illegalKey),
-        ('(keyType): {0}' -f $keyType),
-        ('confirmedInput: {0}' -f $confirmedInput),
         ('transition state: {0}' -f $saveData.transition.state)
     )
     
-    [Int]$windowWidth = 32
+    if ( $null -ne $sceneLines ) { $displayLines += $sceneLines }
+    
+    [Int]$windowWidth = 48
 
     $splitCRLF = { $Args[0] -split "`r`n" }
     $splitWindowWidth = { ($Args[0].Length -gt $windowWidth )?($Args[0] -split "(.{$($windowWidth)})" -ne ''):$Args[0] }
@@ -24,14 +22,15 @@ function displayUI {
 
 function transitionScene {
     param (
-        [Char]$key
+        [ConsoleKeyInfo]$key
     )
 
     if ( $key -ne $nowTransitionKey ) {
-        $saveData.transition.key = $key
-        switch ( $key ) {
+        $saveData.transition.key = $key.KeyChar
+        switch ( $key.KeyChar ) {
             S   { $saveData.transition.state = 'Shop' }
             E   { $saveData.transition.state = 'Equipment' }
+            D   { return (developScene $key) }
             Q   { quitGameScene }
             Default {}
         }
@@ -48,6 +47,16 @@ function quitGameScene {
     exit
 }
 
+function developScene {
+    param (
+        [ConsoleKeyInfo]$key
+    )
+
+    return @(
+        ('inputKey: {0} ({1})' -f $key.KeyChar, $key.Key.value__)
+    )
+}
+
 function saveGame {
     param (
         [String]$name
@@ -57,13 +66,27 @@ function saveGame {
 
 Clear-Host
 $name = $null
-$inputKey = $null
+$inputKeys = $null
 $confirmedInput = $null
-$illegalKey = $null
 $saveData = $null
 
 Write-Host 'type your name'
 $name = Read-Host
+
+class SaveData {
+    [String]$Name
+    [Int]$Money
+    [hashtable]$Item
+    [hashtable]$Equipment
+    [enum]$State
+
+    SaveData() { this.Init(@{}) }
+    SaveData([hashtable]$Properties) { $this.Init($Properties) }
+    SaveData([String]$Name) { $this.Init(@{Name = $Name}) }
+    [void]Init([hashtable]$Properties) { $Properties.Keys.ForEach{ $this.$Property = $_ } }
+
+
+}
 
 if ( Test-Path "./save_$name.json" ) {
     [hashtable]$saveData = Get-Content -Path "./save_$name.json" -Raw | ConvertFrom-Json -AsHashtable
@@ -87,27 +110,26 @@ while ($true) {
     $saveData.player.money += 1
 
     if ([console]::KeyAvailable) {
-        $key = [console]::ReadKey($true)
+        [ConsoleKeyInfo]$key = [console]::ReadKey($true)
         if ($key.Key -eq [ConsoleKey]::Enter) {
-            $confirmedInput = $inputKey ; $inputKey = ''
+            $confirmedInput = $inputKeys
+            $inputKeys = $null
         } elseif ($key.Key -eq [ConsoleKey]::Backspace) {
-            if (($KeyLength = $inputKey.Length - 1) -ge 0) {
-                $inputKey = $inputKey.Substring(0, $KeyLength)
+            if (($KeyLength = $inputKeys.Length - 1) -ge 0) {
+                $inputKeys = $inputKeys.Substring(0, $KeyLength)
             }
         } elseif ($key.Key -in [ConsoleKey]::D0..[ConsoleKey]::D9) {
-            $inputKey += $key.KeyChar
-            transitionScene $Key.KeyChar
+            $inputKeys += $key.KeyChar
+            [String[]]$sceneLines = transitionScene $keyType
         } elseif ($key.Key -in [ConsoleKey]::a..[ConsoleKey]::z) {
-            $inputKey += $key.KeyChar
-            transitionScene $Key.KeyChar
+            $inputKeys += $key.KeyChar
+            [String[]]$sceneLines = transitionScene $Key
         } else {
-            $illegalKey = '{0} ({1})' -f $key.KeyChar, $key.Key.value__
         }
-        $keyType = "`r`n{0}`r`n({1})" -f $key.Modifiers, $key.GetType()
     }
 
     $Key = $null
     Clear-Host
-    displayUI
+    displayUI $sceneLines
     Start-Sleep -Milliseconds 100
 }

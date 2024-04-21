@@ -1,26 +1,3 @@
-if ( Test-Path ./save.json ) {
-} else {
-    New-Item -Path ./save.json -Type File | Out-Null
-}
-
-[hashtable]$save_data = Get-Content -Path ./save.json | ConvertFrom-Json -AsHashtable
-
-if ( $null -eq $save_data ) {
-    $save_data = @{}
-    $save_data['player'] = @{
-        name = ''
-        money = 0
-        items = @{}
-        equipment = @{}
-    }
-}
-
-if ( $save_data.player.name -eq '' ) {
-    Write-Host 'type your name'
-    $save_data.player.name = Read-Host
-    saveGame
-}
-
 function displayUI {
     param (
 
@@ -49,33 +26,55 @@ function transitionScene {
         [Char]$Key
     )
 
-    if ( $null -ne $save_data.transition ) {
-        [String]$nowTransitionKey = $save_data.transition.key
-    } else {
-        $save_data['transition'] = @{
-            key = $Key
-            state = ''
-        }
-    }
-
     if ( $Key -ne $nowTransitionKey ) {
+        $save_data.transition.key = $Key
         switch ( $Key ) {
             S   { $save_data.transition.state = 'Shop' }
             E   { $save_data.transition.state = 'Equipment' }
-            Q   { $save_data.transition.state = 'Quit_game' }
+            Q   { quitGameScene }
             Default {}
         }
-        $save_data.transition.key = $Key
     }
 }
 
+function shopScene {
+
+}
+
 function quitGameScene {
-    saveGame
+    $save_data.transition.key = ''
+    saveGame $name
     exit
 }
 
 function saveGame {
-    $save_data | ConvertTo-Json | Set-Content -Path ./save.json
+    param (
+        [String]$name
+    )
+    $save_data | ConvertTo-Json | Set-Content -Path "./save_$name.json"
+}
+
+Write-Host 'type your name'
+$name = Read-Host
+
+if ( Test-Path "./save_$name.json" ) {
+    [hashtable]$save_data = Get-Content -Path "./save_$name.json" | ConvertFrom-Json -AsHashtable
+} else {
+    New-Item -Path "./save_$name.json" -Type File | Out-Null
+    if ( $null -eq $save_data ) {
+        $save_data = @{}
+        $save_data['player'] = @{
+            name = $name
+            money = 0
+            items = @{}
+            equipment = @{}
+        }
+        $save_data['transition'] = @{
+            state = ''
+            key = ''
+        }
+    }
+    saveGame $name
 }
 
 while ($true) {

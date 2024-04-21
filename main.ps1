@@ -54,6 +54,13 @@ function saveGame {
     $save_data | ConvertTo-Json | Set-Content -Path "./save_$name.json"
 }
 
+Clear-Host
+$name = $null
+$inputKey = $null
+$confirmedInput = $null
+$illegalKey = $null
+$save_data = $null
+
 Write-Host 'type your name'
 $name = Read-Host
 
@@ -61,18 +68,16 @@ if ( Test-Path "./save_$name.json" ) {
     [hashtable]$save_data = Get-Content -Path "./save_$name.json" | ConvertFrom-Json -AsHashtable
 } else {
     New-Item -Path "./save_$name.json" -Type File | Out-Null
-    if ( $null -eq $save_data ) {
-        $save_data = @{}
-        $save_data['player'] = @{
-            name = $name
-            money = 0
-            items = @{}
-            equipment = @{}
-        }
-        $save_data['transition'] = @{
-            state = ''
-            key = ''
-        }
+    $save_data = @{}
+    $save_data['player'] = @{
+        name = $name
+        money = 0
+        items = @{}
+        equipment = @{}
+    }
+    $save_data['transition'] = @{
+        state = ''
+        key = ''
     }
     saveGame $name
 }

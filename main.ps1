@@ -3,13 +3,14 @@ function displayUI {
 
     )
     $displayLines = @(
-        ('Name: {0}' -f $save_data.player.name),
-        ('Gold: {0}G' -f $save_data.player.money),
+        ('Name: {0}' -f $saveData.player.name),
+        ('Gold: {0}G' -f $saveData.player.money),
         ("S: open [S]hop`r`nE: [E]quipment`r`nQ: [Q]uit game"),
         ('inputKey: {0}' -f $inputKey),
         ('(illegalKey): {0}' -f $illegalKey),
+        ('(keyType): {0}' -f $keyType),
         ('confirmedInput: {0}' -f $confirmedInput),
-        ('transition state: {0}' -f $save_data.transition.state)
+        ('transition state: {0}' -f $saveData.transition.state)
     )
     
     [Int]$windowWidth = 32
@@ -23,14 +24,14 @@ function displayUI {
 
 function transitionScene {
     param (
-        [Char]$Key
+        [Char]$key
     )
 
-    if ( $Key -ne $nowTransitionKey ) {
-        $save_data.transition.key = $Key
-        switch ( $Key ) {
-            S   { $save_data.transition.state = 'Shop' }
-            E   { $save_data.transition.state = 'Equipment' }
+    if ( $key -ne $nowTransitionKey ) {
+        $saveData.transition.key = $key
+        switch ( $key ) {
+            S   { $saveData.transition.state = 'Shop' }
+            E   { $saveData.transition.state = 'Equipment' }
             Q   { quitGameScene }
             Default {}
         }
@@ -42,7 +43,7 @@ function shopScene {
 }
 
 function quitGameScene {
-    $save_data.transition.key = ''
+    $saveData.transition.key = ''
     saveGame $name
     exit
 }
@@ -51,7 +52,7 @@ function saveGame {
     param (
         [String]$name
     )
-    $save_data | ConvertTo-Json | Set-Content -Path "./save_$name.json"
+    $saveData | ConvertTo-Json | Set-Content -Path "./save_$name.json"
 }
 
 Clear-Host
@@ -59,23 +60,23 @@ $name = $null
 $inputKey = $null
 $confirmedInput = $null
 $illegalKey = $null
-$save_data = $null
+$saveData = $null
 
 Write-Host 'type your name'
 $name = Read-Host
 
 if ( Test-Path "./save_$name.json" ) {
-    [hashtable]$save_data = Get-Content -Path "./save_$name.json" | ConvertFrom-Json -AsHashtable
+    [hashtable]$saveData = Get-Content -Path "./save_$name.json" -Raw | ConvertFrom-Json -AsHashtable
 } else {
     New-Item -Path "./save_$name.json" -Type File | Out-Null
-    $save_data = @{}
-    $save_data['player'] = @{
+    $saveData = @{}
+    $saveData['player'] = @{
         name = $name
         money = 0
         items = @{}
         equipment = @{}
     }
-    $save_data['transition'] = @{
+    $saveData['transition'] = @{
         state = ''
         key = ''
     }
@@ -83,25 +84,26 @@ if ( Test-Path "./save_$name.json" ) {
 }
 
 while ($true) {
-    $save_data.player.money += 1
+    $saveData.player.money += 1
 
     if ([console]::KeyAvailable) {
         $key = [console]::ReadKey($true)
-        if ($key.Key -eq 'Enter') {
+        if ($key.Key -eq [ConsoleKey]::Enter) {
             $confirmedInput = $inputKey ; $inputKey = ''
-        } elseif ($key.Key -eq 'Backspace') {
+        } elseif ($key.Key -eq [ConsoleKey]::Backspace) {
             if (($KeyLength = $inputKey.Length - 1) -ge 0) {
                 $inputKey = $inputKey.Substring(0, $KeyLength)
             }
-        } elseif ($key.Key.value__ -in 48..57) {
+        } elseif ($key.Key -in [ConsoleKey]::D0..[ConsoleKey]::D9) {
             $inputKey += $key.KeyChar
             transitionScene $Key.KeyChar
-        } elseif ($key.Key.value__ -in 65..90) {
+        } elseif ($key.Key -in [ConsoleKey]::a..[ConsoleKey]::z) {
             $inputKey += $key.KeyChar
             transitionScene $Key.KeyChar
         } else {
             $illegalKey = '{0} ({1})' -f $key.KeyChar, $key.Key.value__
         }
+        $keyType = "`r`n{0}`r`n({1})" -f $key.Modifiers, $key.GetType()
     }
 
     $Key = $null

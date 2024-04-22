@@ -27,31 +27,43 @@ class SaveData {
     }
 }
 
+class WindowData {
+    [String[]]$sceneLines
+    [Int]$windowWidth
+    [ConsoleKeyInfo]$Key
+    [Boolean]$devMode
+
+    WindowData() { $this.Init(@{}) }
+    WindowData([hashtable]$Properties) { $this.Init($Properties) }
+    WindowData([Int]$windowWidth) { $this.Init(@{windowWidth = $windowWidth}) }
+    [void] Init([hashtable]$Properties) {
+        foreach ($Property in $Properties.Keys) {
+            $this.$Property = $Properties.$Property
+        }
+    }
+}
+
 function displayUI {
     param (
         [String[]]$sceneLines,
         [ConsoleKeyInfo]$key
     )
-    $displayLines = @(
+    $window.sceneLines = @(
         ('Name: {0}' -f $saveData.Name),
         ('Gold: {0}G' -f $saveData.Money),
         ("S: open [S]hop`r`nE: [E]quipment`r`nQ: [Q]uit game"),
-        ('transition state: {0}' -f $saveData.State)
+        ('transition state: {0}' -f $saveData.State),
+        ('devMode: {0}' -f $window.devMode)
     )
     
-    if ( $null -ne $sceneLines ) { $displayLines += $sceneLines }
-    if ( $devMode -eq $true ) {
-        [Stirng[]]$devLines = developScene $key
-        $displayLines += $devLines
-    }
-    
-    [Int]$windowWidth = 48
+    if ( $null -ne $sceneLines ) { $window.sceneLines += $sceneLines }
+    if ( $window.devMode ) { $window.sceneLines += (developScene $key) }
 
     $splitCRLF = { $Args[0] -split "`r`n" }
-    $splitWindowWidth = { ($Args[0].Length -gt $windowWidth )?($Args[0] -split "(.{$($windowWidth)})" -ne ''):$Args[0] }
-    $paddingLine = { '|{0}|' -f $Args[0].PadLeft($windowWidth) }
+    $splitWindowWidth = { ($Args[0].Length -gt $window.windowWidth )?($Args[0] -split "(.{$($window.windowWidth)})" -ne ''):$Args[0] }
+    $paddingLine = { '|{0}|' -f $Args[0].PadLeft($window.windowWidth) }
     
-    $displayLines.ForEach{&$splitCRLF $_}.ForEach{&$splitWindowWidth $_}.ForEach{&$paddingLine $_} -Join "`r`n" | Write-Host
+    $window.sceneLines | % {&$splitCRLF $_} | % {&$splitWindowWidth $_} | % {&$paddingLine $_} | Write-Host
 }
 
 function transitionScene {
@@ -62,7 +74,7 @@ function transitionScene {
     switch ( $key.KeyChar ) {
         S   { $saveData.State = [SceneTypes]'Shop' }
         E   { $saveData.State = [SceneTypes]'Equipment' }
-        D   { $devMode = !$devMode }
+        D   { $window.devMode = !$window.devMode }
         Q   { quitGameScene }
         Default {}
     }
@@ -101,6 +113,8 @@ $inputKeys = $null
 $confirmedInput = $null
 $saveData = $null
 [Boolean]$devMode = $false
+
+$window = [WindowData]::new(@{windowWidth = 48 ; devMode = $false})
 
 Write-Host 'type your name'
 $name = Read-Host

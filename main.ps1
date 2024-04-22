@@ -28,14 +28,16 @@ class SaveData {
 }
 
 class WindowData {
-    [String[]]$sceneLines
-    [Int]$windowWidth
+    [String[]]$SceneLines
+    [Int]$WindowWidth
     [ConsoleKeyInfo]$Key
-    [Boolean]$devMode
+    [String]$InputKeys
+    [String]$ConfirmedInput
+    [Boolean]$DevMode
 
     WindowData() { $this.Init(@{}) }
     WindowData([hashtable]$Properties) { $this.Init($Properties) }
-    WindowData([Int]$windowWidth) { $this.Init(@{windowWidth = $windowWidth}) }
+    WindowData([Int]$windowWidth) { $this.Init(@{WindowWidth = $windowWidth}) }
     [void] Init([hashtable]$Properties) {
         foreach ($Property in $Properties.Keys) {
             $this.$Property = $Properties.$Property
@@ -52,18 +54,17 @@ function displayUI {
         ('Name: {0}' -f $saveData.Name),
         ('Gold: {0}G' -f $saveData.Money),
         ("S: open [S]hop`r`nE: [E]quipment`r`nQ: [Q]uit game"),
-        ('transition state: {0}' -f $saveData.State),
-        ('devMode: {0}' -f $window.devMode)
+        ('transition state: {0}' -f $saveData.State)
     )
     
-    if ( $null -ne $sceneLines ) { $window.sceneLines += $sceneLines }
-    if ( $window.devMode ) { $window.sceneLines += (developScene $key) }
+    if ( $null -ne $sceneLines ) { $window.SceneLines += $sceneLines }
+    if ( $window.DevMode ) { $window.SceneLines += (developScene $key) }
 
     $splitCRLF = { $Args[0] -split "`r`n" }
-    $splitWindowWidth = { ($Args[0].Length -gt $window.windowWidth )?($Args[0] -split "(.{$($window.windowWidth)})" -ne ''):$Args[0] }
-    $paddingLine = { '|{0}|' -f $Args[0].PadLeft($window.windowWidth) }
+    $splitWindowWidth = { ($Args[0].Length -gt $window.WindowWidth )?($Args[0] -split "(.{$($window.WindowWidth)})" -ne ''):$Args[0] }
+    $paddingLine = { '|{0}|' -f $Args[0].PadLeft($window.WindowWidth) }
     
-    $window.sceneLines | % {&$splitCRLF $_} | % {&$splitWindowWidth $_} | % {&$paddingLine $_} | Write-Host
+    $window.SceneLines | % {&$splitCRLF $_} | % {&$splitWindowWidth $_} | % {&$paddingLine $_} | Write-Host
 }
 
 function transitionScene {
@@ -74,7 +75,7 @@ function transitionScene {
     switch ( $key.KeyChar ) {
         S   { $saveData.State = [SceneTypes]'Shop' }
         E   { $saveData.State = [SceneTypes]'Equipment' }
-        D   { $window.devMode = !$window.devMode }
+        D   { $window.DevMode = !$window.DevMode }
         Q   { quitGameScene }
         Default {}
     }
@@ -86,7 +87,7 @@ function shopScene {
 
 function quitGameScene {
     $saveData.State = [SceneTypes]'Home'
-    saveGame $name
+    saveGame $saveData.Name
     exit
 }
 
@@ -96,7 +97,7 @@ function developScene {
     )
 
     return @(
-        ('inputKey: {0} ({1})' -f $key.KeyChar, $key.Key.value__)
+        ('inputKey: {0} ({1}), Modifiers: {2} ({3})' -f $key.KeyChar, $key.Key.value__, $key.Modifiers, $key.Modifiers.value__)
     )
 }
 
@@ -109,12 +110,9 @@ function saveGame {
 
 Clear-Host
 $name = $null
-$inputKeys = $null
-$confirmedInput = $null
 $saveData = $null
-[Boolean]$devMode = $false
 
-$window = [WindowData]::new(@{windowWidth = 48 ; devMode = $false})
+$window = [WindowData]::new(@{WindowWidth = 48 ; DevMode = $false})
 
 Write-Host 'type your name'
 $name = Read-Host
@@ -139,16 +137,16 @@ while ($true) {
     if ([console]::KeyAvailable) {
         [ConsoleKeyInfo]$key = [console]::ReadKey($true)
         if ($key.Key -eq [ConsoleKey]::Enter) {
-            $confirmedInput = $inputKeys
-            $inputKeys = $null
+            $window.ConfirmedInput = $window.InputKeys
+            $window.InputKeys = $null
         } elseif ($key.Key -eq [ConsoleKey]::Backspace) {
-            if (($KeyLength = $inputKeys.Length - 1) -ge 0) {
-                $inputKeys = $inputKeys.Substring(0, $KeyLength)
+            if (($KeyLength = $window.InputKeys.Length - 1) -ge 0) {
+                $window.InputKeys = $window.InputKeys.Substring(0, $KeyLength)
             }
         } elseif ($key.Key -in [ConsoleKey]::D0..[ConsoleKey]::D9) {
-            $inputKeys += $key.KeyChar
+            $window.InputKeys += $key.KeyChar
         } elseif ($key.Key -in [ConsoleKey]::a..[ConsoleKey]::z) {
-            $inputKeys += $key.KeyChar
+            $window.InputKeys += $key.KeyChar
         } else {
         }
         [String[]]$sceneLines = transitionScene $key

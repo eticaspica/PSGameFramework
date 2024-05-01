@@ -135,24 +135,24 @@ while ($true) {
     $saveData.Money += 1
 
     if ([console]::KeyAvailable) {
-        [ConsoleKeyInfo]$key = [console]::ReadKey($true)
-        if ($key.Key -eq [ConsoleKey]::Enter) {
+        $window.Key = [console]::ReadKey($true)
+        if ($window.Key.Key -eq [ConsoleKey]::Enter) {
             $window.ConfirmedInput = $window.InputKeys
             $window.InputKeys = $null
-        } elseif ($key.Key -eq [ConsoleKey]::Backspace) {
+        } elseif ($window.Key.Key -eq [ConsoleKey]::Backspace) {
             if (($KeyLength = $window.InputKeys.Length - 1) -ge 0) {
                 $window.InputKeys = $window.InputKeys.Substring(0, $KeyLength)
             }
-        } elseif ($key.Key -in [ConsoleKey]::D0..[ConsoleKey]::D9) {
-            $window.InputKeys += $key.KeyChar
-        } elseif ($key.Key -in [ConsoleKey]::a..[ConsoleKey]::z) {
-            $window.InputKeys += $key.KeyChar
+        } elseif ($window.Key.Key -in [ConsoleKey]::D0..[ConsoleKey]::D9) {
+            $window.InputKeys += $window.Key.KeyChar
+        } elseif ($window.Key.Key -in [ConsoleKey]::a..[ConsoleKey]::z) {
+            $window.InputKeys += $window.Key.KeyChar
         } else {
         }
-        [String[]]$sceneLines = transitionScene $key
+        [String[]]$sceneLines = transitionScene $window.Key
     }
 
     Clear-Host
-    displayUI $sceneLines $key
+    displayUI $sceneLines $window.Key
     Start-Sleep -Milliseconds 100
 }

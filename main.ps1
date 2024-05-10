@@ -10,6 +10,19 @@ enum KeyTypes {
     E = 200
 }
 
+class Unit {
+    [Name]$Name
+    [Money]$Money
+}
+
+class Name {
+    [String]$Name
+}
+
+class Money {
+    [Int]$Money
+}
+
 class SaveData {
     [String]$Name
     [Int]$Money

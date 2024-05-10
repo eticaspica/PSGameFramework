@@ -13,6 +13,7 @@ enum KeyTypes {
 class Unit {
     [Name]$Name
     [Money]$Money
+    [Equipment[]]$Equipments
 }
 
 class Name {
@@ -23,16 +24,27 @@ class Money {
     [Int]$Money
 }
 
-class SaveData {
-    [String]$Name
-    [Int]$Money
-    [hashtable]$Item
-    [hashtable]$Equipment
+class Equipment {
+    [Item]$Equipment
+}
+
+class Item {
+    [HashTable]$Item
+}
+
+class Party {
+    [Unit[]]$Units
+    [Item[]]$Items
+
+}
+
+class GameDate {
+    [Unit[]]$Party
     [SceneTypes]$State
 
-    SaveData() { $this.Init(@{}) }
-    SaveData([hashtable]$Properties) { $this.Init($Properties) }
-    SaveData([String]$name) { $this.Init(@{Name = $name}) }
+    GameDate() { $this.Init(@{}) }
+    GameDate([hashtable]$Properties) { $this.Init($Properties) }
+    GameDate([String]$name) { $this.Init(@{Name = $name}) }
     [void] Init([hashtable]$Properties) {
         foreach ($Property in $Properties.Keys) {
             $this.$Property = $Properties.$Property
@@ -64,10 +76,10 @@ function displayUI {
         [ConsoleKeyInfo]$key
     )
     $window.sceneLines = @(
-        ('Name: {0}' -f $saveData.Name),
-        ('Gold: {0}G' -f $saveData.Money),
+        ('Name: {0}' -f $GameDate.Name),
+        ('Gold: {0}G' -f $GameDate.Money),
         ("S: open [S]hop`r`nE: [E]quipment`r`nQ: [Q]uit game"),
-        ('transition state: {0}' -f $saveData.State)
+        ('transition state: {0}' -f $GameDate.State)
     )
     
     if ( $null -ne $sceneLines ) { $window.SceneLines += $sceneLines }
@@ -86,8 +98,8 @@ function transitionScene {
     )
 
     switch ( $key.KeyChar ) {
-        S   { $saveData.State = [SceneTypes]'Shop' }
-        E   { $saveData.State = [SceneTypes]'Equipment' }
+        S   { $GameDate.State = [SceneTypes]'Shop' }
+        E   { $GameDate.State = [SceneTypes]'Equipment' }
         D   { $window.DevMode = !$window.DevMode }
         Q   { quitGameScene }
         Default {}
@@ -99,8 +111,8 @@ function shopScene {
 }
 
 function quitGameScene {
-    $saveData.State = [SceneTypes]'Home'
-    saveGame $saveData.Name
+    $GameDate.State = [SceneTypes]'Home'
+    saveGame $GameDate.Name
     exit
 }
 
@@ -118,12 +130,12 @@ function saveGame {
     param (
         [String]$name
     )
-    $saveData | ConvertTo-Json | Set-Content -Path "./save_$name.json"
+    $GameDate | ConvertTo-Json | Set-Content -Path "./save_$name.json"
 }
 
 Clear-Host
 $name = $null
-$saveData = $null
+$GameDate = $null
 
 $window = [WindowData]::new(@{WindowWidth = 48 ; DevMode = $false})
 
@@ -134,18 +146,18 @@ $name = Read-Host
 if ( Test-Path "./save_$name.json" ) {
     [hashtable]$loadJson = Get-Content -Path "./save_$name.json" -Raw | ConvertFrom-Json -AsHashtable
     try {
-        $saveData = [SaveData]::new($loadJson)
+        $GameDate = [GameDate]::new($loadJson)
     } catch {
-        $saveData = [SaveData]::new($name)
+        $GameDate = [GameDate]::new($name)
     }
 } else {
     New-Item -Path "./save_$name.json" -Type File | Out-Null
-    $saveData = [SaveData]::new($name)
+    $GameDate = [GameDate]::new($name)
     saveGame $name
 }
 
 while ($true) {
-    $saveData.Money += 1
+    $GameDate.Money += 1
 
     if ([console]::KeyAvailable) {
         $window.Key = [console]::ReadKey($true)
